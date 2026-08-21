@@ -26,13 +26,16 @@ from ciphers.registry import list_families, get_cipher
 from app.pipeline import detect_and_solve, explain_result, analyze_text
 from app.file_extraction import extract_text, SUPPORTED_EXTENSIONS
 
-st.set_page_config(page_title="CryptoAI · Classical Cipher Lab", page_icon="🔐", layout="centered")
+st.set_page_config(page_title="CryptanAI · Classical Cipher Lab", page_icon="🔐", layout="centered")
 
-CONFIDENCE_BADGE = {
-    "high": "🟢 high confidence",
-    "medium": "🟡 medium confidence",
-    "best_effort": "🟠 best effort — may not have converged, worth a second look",
-    "n/a": "⚪ not auto-solvable",
+SOLVER_BADGE = {
+    "high":        "🟢 solver: reliable — this attack finds the exact key when "
+                   "the cipher type is correct",
+    "medium":      "🟡 solver: moderate — workable signal, but more uncertainty",
+    "best_effort": "🟠 solver: best effort — search may not have fully converged; "
+                   "treat as a strong hint and verify by eye",
+    "n/a":         "⚪ solver: n/a — no automatic ciphertext-only attack exists for "
+                   "this cipher (Hill needs a known-plaintext crib)",
 }
 
 FAMILY_LABELS = {
@@ -96,23 +99,59 @@ def _render_result_card(rank: int, result):
     with st.container(border=True):
         if result.hill_suspected_but_needs_crib:
             st.markdown(f"**#{rank} · {result.cipher_display_name}**")
-            st.caption(f"Classifier thinks this is plausible ({result.classifier_probability:.0%} probability), "
-                       f"but Hill has no blind ciphertext-only attack by design — it needs a known-plaintext "
-                       f"crib. Use the Hill tool below with a guessed fragment of the message.")
+            st.caption(
+                f"Classifier says {result.classifier_probability:.0%} likely — but Hill has no "
+                f"blind ciphertext-only attack by design. Use the crib tool below."
+            )
             return
 
-        header_col, prob_col = st.columns([3, 1])
-        header_col.markdown(f"**#{rank} · {result.cipher_display_name}**")
-        prob_col.metric("Classifier", f"{result.classifier_probability:.0%}", label_visibility="collapsed")
-        st.caption(CONFIDENCE_BADGE.get(result.confidence, result.confidence))
+        # ── Header row ──────────────────────────────────────────────
+        st.markdown(f"**#{rank} · {result.cipher_display_name}**  "
+                    f"·  *{result.cipher_family}*")
 
-        st.text_area("Decrypted text", result.plaintext, height=80, disabled=True,
-                     key=f"result_{rank}_{result.cipher_slug}", label_visibility="collapsed")
-        st.code(f"Recovered key: {result.key}    ·    method: {result.method}", language=None)
+        # ── Two clearly separate signals ─────────────────────────────
+        col_clf, col_sol = st.columns(2)
 
+        col_clf.metric(
+            label="Classifier probability",
+            value=f"{result.classifier_probability:.0%}",
+            help=(
+                "How confident the ML classifier is that THIS specific cipher produced "
+                "the ciphertext — out of 15 possible ciphers. 17% for one cipher out of "
+                "15 options (6.7% uniform) is actually a meaningful signal. Ciphers in the "
+                "same family often share this probability because they look statistically "
+                "identical ciphertext-only (e.g. Substitution and Keyword both relabel "
+                "letters with no other distinguishing trace)."
+            ),
+        )
+
+        col_sol.metric(
+            label="Solver method",
+            value=result.method.replace("+", " + ").replace("_", " "),
+            help=(
+                "The actual algorithm used to search for the key once a cipher type was "
+                "proposed — brute_force (exhaustive, exact), hill_climbing (heuristic search "
+                "over a large key space), or kasiski+ic_scan+frequency (two-stage attack for "
+                "polyalphabetic ciphers)."
+            ),
+        )
+
+        # Solver reliability badge — a separate thing from classifier probability
+        st.caption(SOLVER_BADGE.get(result.confidence, result.confidence))
+
+        # ── Decrypted output ─────────────────────────────────────────
+        st.text_area(
+            "Decrypted text", result.plaintext, height=100, disabled=True,
+            key=f"result_{rank}_{result.cipher_slug}",
+            label_visibility="collapsed",
+        )
+        st.code(f"Recovered key: {result.key}", language=None)
+
+        # ── Explainability ───────────────────────────────────────────
         with st.expander("❓ Why this ranking?"):
             for step in explain_result(result):
                 st.markdown(f"- {step}")
+
 
 
 def _render_frequency_chart(analysis):
