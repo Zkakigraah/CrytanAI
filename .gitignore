@@ -51,6 +51,6 @@ htmlcov/
 Thumbs.db
 .env
 
-# Optional: Uncomment if want to regenerate these from source
+# Data
 models/cipher_detector.joblib
 ml/corpus/

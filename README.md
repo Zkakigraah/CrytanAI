@@ -1,6 +1,6 @@
 # CryptanAI: Classical Cipher Lab
 
-AI-powered cryptanalysis of classical ciphers: automatic **detection** (which
+(AI assisted Tool): AI-powered cryptanalysis of classical ciphers: automatic **detection** (which
 of 15 classical ciphers produced this ciphertext?) and **cracking** (recover
 the key and the plaintext) using real frequency analysis, Kasiski/Friedman
 key-length recovery, hill-climbing search, and a trained ML classifier — not
@@ -199,11 +199,3 @@ NLTK's `words` corpus. `scripts/build_language_model.py` documents and
 reproduces exactly how; nothing at runtime needs NLTK or a network
 connection — the computed statistics are what's actually shipped and used.
 
-## Extending this
-
-[`PROJECT_QA.md`](PROJECT_QA.md) has a tiered roadmap — from cheap
-engineering polish to genuinely research-level ideas (a character-level
-Transformer that denoises substitution ciphers end-to-end, ciphertext-only
-Hill cryptanalysis via lattice methods) — plus the historical and
-theoretical reasoning behind why this project is worth building in the
-first place.
